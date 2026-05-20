@@ -1,11 +1,14 @@
 export type Category = 'task' | 'want'
+export type Priority = 'high' | 'medium' | 'low'
 
 export interface Task {
   id: string
   title: string
   detail?: string
-  dueDate?: string // "YYYY-MM-DD"
+  dueDate?: string
   completed: boolean
   category: Category
+  priority: Priority
+  order: number
   createdAt: string
 }

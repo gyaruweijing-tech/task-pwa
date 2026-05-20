@@ -1,11 +1,19 @@
 'use client'
 
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Task } from '@/types/task'
 
 interface Props {
   task: Task
   onToggle: (id: string) => void
   onTap: (task: Task) => void
+}
+
+const PRIORITY_STYLE = {
+  high:   { dot: 'bg-red-500',    badge: 'text-red-500' },
+  medium: { dot: 'bg-yellow-400', badge: 'text-yellow-500' },
+  low:    { dot: 'bg-gray-300',   badge: 'text-gray-400' },
 }
 
 function dueDateLabel(dueDate: string): { text: string; color: string } {
@@ -39,15 +47,44 @@ function dueDateLabel(dueDate: string): { text: string; color: string } {
 }
 
 export default function TaskItem({ task, onToggle, onTap }: Props) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : undefined,
+  }
+
+  const priority = PRIORITY_STYLE[task.priority ?? 'medium']
+
   return (
     <div
-      className={`flex items-start gap-3 px-4 py-3 transition-opacity ${
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 px-3 py-3 bg-white transition-opacity ${
         task.completed ? 'opacity-40' : 'opacity-100'
-      }`}
+      } ${isDragging ? 'shadow-lg rounded-xl' : ''}`}
     >
+      {/* ドラッグハンドル */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="touch-none p-1 text-gray-300 hover:text-gray-400 cursor-grab active:cursor-grabbing flex-shrink-0"
+        aria-label="並び替え"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M9 4a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM9 10.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM9 17a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/>
+        </svg>
+      </button>
+
+      {/* 優先順位ドット */}
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 ${priority.dot}`} />
+
+      {/* チェックボタン */}
       <button
         onClick={() => onToggle(task.id)}
-        className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+        className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
           task.completed
             ? 'bg-blue-500 border-blue-500'
             : 'border-gray-400 hover:border-blue-400'
@@ -61,10 +98,8 @@ export default function TaskItem({ task, onToggle, onTap }: Props) {
         )}
       </button>
 
-      <button
-        onClick={() => onTap(task)}
-        className="flex-1 text-left min-w-0"
-      >
+      {/* テキスト */}
+      <button onClick={() => onTap(task)} className="flex-1 text-left min-w-0">
         <p className={`text-sm leading-snug truncate ${task.completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
           {task.title}
         </p>

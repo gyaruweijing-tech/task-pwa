@@ -1,6 +1,16 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Task, Category } from '@/types/task'
 import TaskItem from './TaskItem'
 
@@ -10,13 +20,39 @@ interface Props {
   onToggle: (id: string) => void
   onTap: (task: Task) => void
   onClearCompleted: (cat: Category) => void
+  onReorder: (category: Category, orderedIds: string[]) => void
 }
 
-export default function TaskList({ tasks, category, onToggle, onTap, onClearCompleted }: Props) {
+export default function TaskList({ tasks, category, onToggle, onTap, onClearCompleted, onReorder }: Props) {
   const [showCompleted, setShowCompleted] = useState(false)
 
-  const active = tasks.filter(t => t.category === category && !t.completed)
+  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
+  const active = tasks
+    .filter(t => t.category === category && !t.completed)
+    .sort((a, b) => {
+      const pd = PRIORITY_ORDER[a.priority ?? 'medium'] - PRIORITY_ORDER[b.priority ?? 'medium']
+      if (pd !== 0) return pd
+      return (a.order ?? 0) - (b.order ?? 0)
+    })
   const completed = tasks.filter(t => t.category === category && t.completed)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+  )
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active: dragActive, over } = event
+    if (!over || dragActive.id === over.id) return
+
+    const ids = active.map(t => t.id)
+    const oldIndex = ids.indexOf(dragActive.id as string)
+    const newIndex = ids.indexOf(over.id as string)
+    const reordered = [...ids]
+    reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, dragActive.id as string)
+    onReorder(category, reordered)
+  }
 
   return (
     <div className="flex-1 overflow-y-auto pb-28">
@@ -26,14 +62,16 @@ export default function TaskList({ tasks, category, onToggle, onTap, onClearComp
         </p>
       )}
 
-      {/* アクティブなタスク */}
-      <div className="divide-y divide-gray-100">
-        {active.map(task => (
-          <TaskItem key={task.id} task={task} onToggle={onToggle} onTap={onTap} />
-        ))}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={active.map(t => t.id)} strategy={verticalListSortingStrategy}>
+          <div className="divide-y divide-gray-100">
+            {active.map(task => (
+              <TaskItem key={task.id} task={task} onToggle={onToggle} onTap={onTap} />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
-      {/* 完了済みセクション（一番下） */}
       {completed.length > 0 && (
         <div className="mt-4 border-t border-gray-100">
           <button

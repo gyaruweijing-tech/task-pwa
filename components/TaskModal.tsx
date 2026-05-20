@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Task, Category } from '@/types/task'
+import { Task, Category, Priority } from '@/types/task'
 import DateTimePicker from './DateTimePicker'
 
 interface AddMode {
@@ -15,9 +15,15 @@ interface EditMode {
 
 type Props = (AddMode | EditMode) & {
   onClose: () => void
-  onSave: (data: { title: string; detail?: string; dueDate?: string }) => void
+  onSave: (data: { title: string; detail?: string; dueDate?: string; priority: Priority }) => void
   onDelete?: () => void
 }
+
+const PRIORITIES: { value: Priority; label: string; color: string; active: string }[] = [
+  { value: 'high',   label: '高',  color: 'border-red-200 text-red-500',    active: 'bg-red-500 text-white border-red-500' },
+  { value: 'medium', label: '中',  color: 'border-yellow-200 text-yellow-500', active: 'bg-yellow-400 text-white border-yellow-400' },
+  { value: 'low',    label: '低',  color: 'border-gray-200 text-gray-400',   active: 'bg-gray-400 text-white border-gray-400' },
+]
 
 function splitDueDate(dueDate?: string): { date: string; time: string } {
   if (!dueDate) return { date: '', time: '' }
@@ -43,6 +49,7 @@ export default function TaskModal(props: Props) {
   const [detail, setDetail] = useState(initial?.detail ?? '')
   const [date, setDate] = useState(initDate)
   const [time, setTime] = useState(initTime)
+  const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'medium')
   const [showPicker, setShowPicker] = useState(false)
 
   const titleRef = useRef<HTMLInputElement>(null)
@@ -56,7 +63,7 @@ export default function TaskModal(props: Props) {
     let dueDate: string | undefined
     if (date && time) dueDate = `${date}T${time}`
     else if (date) dueDate = date
-    props.onSave({ title: title.trim(), detail: detail.trim() || undefined, dueDate })
+    props.onSave({ title: title.trim(), detail: detail.trim() || undefined, dueDate, priority })
     props.onClose()
   }
 
@@ -95,6 +102,24 @@ export default function TaskModal(props: Props) {
               onChange={e => setDetail(e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
+
+            {/* 優先順位 */}
+            <div>
+              <p className="text-xs text-gray-400 mb-1.5">優先順位</p>
+              <div className="flex gap-2">
+                {PRIORITIES.map(p => (
+                  <button
+                    key={p.value}
+                    onClick={() => setPriority(p.value)}
+                    className={`flex-1 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                      priority === p.value ? p.active : p.color + ' hover:opacity-70'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* 日時ボタン */}
             <button

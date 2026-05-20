@@ -15,7 +15,7 @@ type ModalState =
 export default function Home() {
   const [category, setCategory] = useState<Category>('task')
   const [modal, setModal] = useState<ModalState>(null)
-  const { tasks, addTask, updateTask, toggleComplete, deleteTask, clearCompleted } = useTasks()
+  const { tasks, addTask, updateTask, toggleComplete, deleteTask, clearCompleted, reorderTasks } = useTasks()
 
   return (
     <div className="flex flex-col h-dvh max-w-md mx-auto bg-white">
@@ -31,6 +31,7 @@ export default function Home() {
         onToggle={toggleComplete}
         onTap={task => setModal({ type: 'edit', task })}
         onClearCompleted={clearCompleted}
+        onReorder={reorderTasks}
       />
 
       {/* Google Tasks風 FAB */}
