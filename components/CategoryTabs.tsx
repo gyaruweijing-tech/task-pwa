@@ -7,20 +7,26 @@ interface Props {
   onChange: (cat: Category) => void
 }
 
+const TABS: { value: Category; label: string }[] = [
+  { value: 'task', label: 'タスク' },
+  { value: 'want', label: 'やりたいこと' },
+  { value: 'memo', label: 'メモ' },
+]
+
 export default function CategoryTabs({ active, onChange }: Props) {
   return (
     <div className="flex border-b border-gray-200">
-      {(['task', 'want'] as Category[]).map(cat => (
+      {TABS.map(tab => (
         <button
-          key={cat}
-          onClick={() => onChange(cat)}
+          key={tab.value}
+          onClick={() => onChange(tab.value)}
           className={`flex-1 py-3 text-sm font-medium transition-colors ${
-            active === cat
+            active === tab.value
               ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
-          {cat === 'task' ? 'タスク' : 'やりたいこと'}
+          {tab.label}
         </button>
       ))}
     </div>

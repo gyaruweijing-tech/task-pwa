@@ -19,10 +19,16 @@ type Props = (AddMode | EditMode) & {
   onDelete?: () => void
 }
 
-const PRIORITIES: { value: Priority; label: string; color: string; active: string }[] = [
-  { value: 'high',   label: '高',  color: 'border-red-200 text-red-500',    active: 'bg-red-500 text-white border-red-500' },
+const TASK_PRIORITIES: { value: Priority; label: string; color: string; active: string }[] = [
+  { value: 'high',   label: '高',  color: 'border-red-200 text-red-500',       active: 'bg-red-500 text-white border-red-500' },
   { value: 'medium', label: '中',  color: 'border-yellow-200 text-yellow-500', active: 'bg-yellow-400 text-white border-yellow-400' },
-  { value: 'low',    label: '低',  color: 'border-gray-200 text-gray-400',   active: 'bg-gray-400 text-white border-gray-400' },
+  { value: 'low',    label: '低',  color: 'border-gray-200 text-gray-400',     active: 'bg-gray-400 text-white border-gray-400' },
+]
+
+const WANT_PRIORITIES: { value: Priority; label: string; color: string; active: string }[] = [
+  { value: 'high',   label: '超気になる', color: 'border-purple-200 text-purple-500', active: 'bg-purple-500 text-white border-purple-500' },
+  { value: 'medium', label: '気になる',   color: 'border-blue-200 text-blue-500',     active: 'bg-blue-500 text-white border-blue-500' },
+  { value: 'low',    label: 'なんとなく', color: 'border-gray-200 text-gray-400',     active: 'bg-gray-400 text-white border-gray-400' },
 ]
 
 function splitDueDate(dueDate?: string): { date: string; time: string } {
@@ -43,6 +49,7 @@ function formatDateTimeLabel(date: string, time: string): string {
 export default function TaskModal(props: Props) {
   const isEdit = props.mode === 'edit'
   const initial = isEdit ? props.task : null
+  const category = isEdit ? props.task.category : props.category
   const { date: initDate, time: initTime } = splitDueDate(initial?.dueDate)
 
   const [title, setTitle] = useState(initial?.title ?? '')
@@ -67,6 +74,10 @@ export default function TaskModal(props: Props) {
     props.onClose()
   }
 
+  const priorities = category === 'want' ? WANT_PRIORITIES : TASK_PRIORITIES
+  const showPriority = category !== 'memo'
+  const showDateTime = category !== 'memo'
+
   return (
     <>
       <div
@@ -76,7 +87,7 @@ export default function TaskModal(props: Props) {
         <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-xl">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-800">
-              {isEdit ? 'タスクを編集' : 'タスクを追加'}
+              {isEdit ? '編集' : category === 'task' ? 'タスクを追加' : category === 'want' ? 'やりたいことを追加' : 'メモを追加'}
             </h2>
             <button onClick={props.onClose} className="text-gray-400 hover:text-gray-600">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -92,49 +103,53 @@ export default function TaskModal(props: Props) {
               placeholder="タイトル"
               value={title}
               onChange={e => setTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSave() }}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-            <input
-              type="text"
+            <textarea
               placeholder="詳細（任意）"
               value={detail}
               onChange={e => setDetail(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              rows={3}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
             />
 
-            {/* 優先順位 */}
-            <div>
-              <p className="text-xs text-gray-400 mb-1.5">優先順位</p>
-              <div className="flex gap-2">
-                {PRIORITIES.map(p => (
-                  <button
-                    key={p.value}
-                    onClick={() => setPriority(p.value)}
-                    className={`flex-1 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
-                      priority === p.value ? p.active : p.color + ' hover:opacity-70'
-                    }`}
-                  >
-                    {p.label}
-                  </button>
-                ))}
+            {showPriority && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1.5">
+                  {category === 'want' ? '好奇心の度合い' : '優先順位'}
+                </p>
+                <div className="flex gap-2">
+                  {priorities.map(p => (
+                    <button
+                      key={p.value}
+                      onClick={() => setPriority(p.value)}
+                      className={`flex-1 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                        priority === p.value ? p.active : p.color + ' hover:opacity-70'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* 日時ボタン */}
-            <button
-              onClick={() => setShowPicker(true)}
-              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
-                date
-                  ? 'border-blue-300 bg-blue-50 text-blue-600'
-                  : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
-              }`}
-            >
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {date ? formatDateTimeLabel(date, time) : '日時を追加'}
-            </button>
+            {showDateTime && (
+              <button
+                onClick={() => setShowPicker(true)}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors ${
+                  date
+                    ? 'border-blue-300 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                }`}
+              >
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                {date ? formatDateTimeLabel(date, time) : '日時を追加'}
+              </button>
+            )}
           </div>
 
           <div className="flex gap-2 mt-5">

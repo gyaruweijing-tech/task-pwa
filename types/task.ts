@@ -1,4 +1,4 @@
-export type Category = 'task' | 'want'
+export type Category = 'task' | 'want' | 'memo'
 export type Priority = 'high' | 'medium' | 'low'
 
 export interface Task {

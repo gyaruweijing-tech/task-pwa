@@ -4,25 +4,32 @@ import { useState, useEffect } from 'react'
 import { Task, Category, Priority } from '@/types/task'
 
 const STORAGE_KEY = 'task-pwa-tasks'
+const BACKUP_KEY = 'task-pwa-tasks-backup'
+
+function migrate(tasks: Task[]): Task[] {
+  return tasks.map((t, i) => ({
+    ...t,
+    priority: t.priority ?? ('medium' as Priority),
+    order: t.order ?? i,
+    // 古いデータに memo カテゴリがない場合は変換不要
+  }))
+}
 
 function loadFromStorage(): Task[] {
   if (typeof window === 'undefined') return []
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const tasks: Task[] = raw ? JSON.parse(raw) : []
-    // 古いデータにpriority/orderがない場合のマイグレーション
-    return tasks.map((t, i) => ({
-      ...t,
-      priority: t.priority ?? ('medium' as Priority),
-      order: t.order ?? i,
-    }))
+    let raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) raw = localStorage.getItem(BACKUP_KEY) // バックアップから復元
+    return raw ? migrate(JSON.parse(raw)) : []
   } catch {
     return []
   }
 }
 
 function saveToStorage(tasks: Task[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+  const json = JSON.stringify(tasks)
+  localStorage.setItem(STORAGE_KEY, json)
+  localStorage.setItem(BACKUP_KEY, json) // 常に2重保存
 }
 
 export function useTasks() {
@@ -85,5 +92,34 @@ export function useTasks() {
     persist([...others, ...reordered])
   }
 
-  return { tasks, addTask, updateTask, toggleComplete, deleteTask, clearCompleted, reorderTasks }
+  function exportTasks(): string {
+    return JSON.stringify(tasks, null, 2)
+  }
+
+  function importTasks(json: string): boolean {
+    try {
+      const imported: Task[] = JSON.parse(json)
+      if (!Array.isArray(imported)) return false
+      const migrated = migrate(imported)
+      // 既存IDと重複しないものだけ追加（マージ）
+      const existingIds = new Set(tasks.map(t => t.id))
+      const merged = [...tasks, ...migrated.filter(t => !existingIds.has(t.id))]
+      persist(merged)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  return {
+    tasks,
+    addTask,
+    updateTask,
+    toggleComplete,
+    deleteTask,
+    clearCompleted,
+    reorderTasks,
+    exportTasks,
+    importTasks,
+  }
 }

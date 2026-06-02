@@ -19,17 +19,20 @@ interface Props {
   category: Category
   onToggle: (id: string) => void
   onTap: (task: Task) => void
+  onDateTap: (task: Task) => void
   onClearCompleted: (cat: Category) => void
   onReorder: (category: Category, orderedIds: string[]) => void
 }
 
-export default function TaskList({ tasks, category, onToggle, onTap, onClearCompleted, onReorder }: Props) {
+const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
+
+export default function TaskList({ tasks, category, onToggle, onTap, onDateTap, onClearCompleted, onReorder }: Props) {
   const [showCompleted, setShowCompleted] = useState(false)
 
-  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 }
   const active = tasks
     .filter(t => t.category === category && !t.completed)
     .sort((a, b) => {
+      if (category === 'memo') return (a.order ?? 0) - (b.order ?? 0)
       const pd = PRIORITY_ORDER[a.priority ?? 'medium'] - PRIORITY_ORDER[b.priority ?? 'medium']
       if (pd !== 0) return pd
       return (a.order ?? 0) - (b.order ?? 0)
@@ -54,19 +57,19 @@ export default function TaskList({ tasks, category, onToggle, onTap, onClearComp
     onReorder(category, reordered)
   }
 
+  const emptyLabel = category === 'task' ? 'タスクがありません' : category === 'want' ? 'やりたいことがありません' : 'メモがありません'
+
   return (
     <div className="flex-1 overflow-y-auto pb-28">
       {active.length === 0 && completed.length === 0 && (
-        <p className="text-center text-gray-400 text-sm mt-20">
-          {category === 'task' ? 'タスクがありません' : 'やりたいことがありません'}
-        </p>
+        <p className="text-center text-gray-400 text-sm mt-20">{emptyLabel}</p>
       )}
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={active.map(t => t.id)} strategy={verticalListSortingStrategy}>
           <div className="divide-y divide-gray-100">
             {active.map(task => (
-              <TaskItem key={task.id} task={task} onToggle={onToggle} onTap={onTap} />
+              <TaskItem key={task.id} task={task} onToggle={onToggle} onTap={onTap} onDateTap={onDateTap} />
             ))}
           </div>
         </SortableContext>
@@ -91,7 +94,7 @@ export default function TaskList({ tasks, category, onToggle, onTap, onClearComp
             <>
               <div className="divide-y divide-gray-100">
                 {completed.map(task => (
-                  <TaskItem key={task.id} task={task} onToggle={onToggle} onTap={onTap} />
+                  <TaskItem key={task.id} task={task} onToggle={onToggle} onTap={onTap} onDateTap={onDateTap} />
                 ))}
               </div>
               <button
