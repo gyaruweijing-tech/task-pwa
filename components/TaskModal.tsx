@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Task, Category, Priority } from '@/types/task'
+import { Task, Category, Priority, Difficulty } from '@/types/task'
 import DateTimePicker from './DateTimePicker'
 
 interface AddMode {
   mode: 'add'
   category: Category
+  initialToday?: boolean
 }
 interface EditMode {
   mode: 'edit'
@@ -15,7 +16,15 @@ interface EditMode {
 
 type Props = (AddMode | EditMode) & {
   onClose: () => void
-  onSave: (data: { title: string; detail?: string; dueDate?: string; priority: Priority }) => void
+  onSave: (data: {
+    title: string
+    detail?: string
+    dueDate?: string
+    priority: Priority
+    difficulty?: Difficulty
+    today?: boolean
+    inProgress?: boolean
+  }) => void
   onDelete?: () => void
 }
 
@@ -29,6 +38,13 @@ const WANT_PRIORITIES: { value: Priority; label: string; color: string; active: 
   { value: 'high',   label: '超気になる', color: 'border-purple-200 text-purple-500', active: 'bg-purple-500 text-white border-purple-500' },
   { value: 'medium', label: '気になる',   color: 'border-blue-200 text-blue-500',     active: 'bg-blue-500 text-white border-blue-500' },
   { value: 'low',    label: 'なんとなく', color: 'border-gray-200 text-gray-400',     active: 'bg-gray-400 text-white border-gray-400' },
+]
+
+// 哲学：難=朝 / 中=昼 / 易=夜
+const DIFFICULTIES: { value: Difficulty; label: string; hint: string; color: string; active: string }[] = [
+  { value: 'hard',   label: '🌅 難しい', hint: '朝向き', color: 'border-orange-200 text-orange-600', active: 'bg-orange-500 text-white border-orange-500' },
+  { value: 'medium', label: '☀️ ふつう', hint: '昼向き', color: 'border-amber-200 text-amber-600',   active: 'bg-amber-400 text-white border-amber-400' },
+  { value: 'easy',   label: '🌙 簡単',   hint: '夜向き', color: 'border-indigo-200 text-indigo-500', active: 'bg-indigo-500 text-white border-indigo-500' },
 ]
 
 function splitDueDate(dueDate?: string): { date: string; time: string } {
@@ -57,6 +73,9 @@ export default function TaskModal(props: Props) {
   const [date, setDate] = useState(initDate)
   const [time, setTime] = useState(initTime)
   const [priority, setPriority] = useState<Priority>(initial?.priority ?? 'medium')
+  const [difficulty, setDifficulty] = useState<Difficulty | undefined>(initial?.difficulty)
+  const [today, setToday] = useState<boolean>(initial?.today ?? (props.mode === 'add' ? props.initialToday ?? false : false))
+  const [inProgress, setInProgress] = useState<boolean>(initial?.inProgress ?? false)
   const [showPicker, setShowPicker] = useState(false)
 
   const titleRef = useRef<HTMLInputElement>(null)
@@ -70,13 +89,14 @@ export default function TaskModal(props: Props) {
     let dueDate: string | undefined
     if (date && time) dueDate = `${date}T${time}`
     else if (date) dueDate = date
-    props.onSave({ title: title.trim(), detail: detail.trim() || undefined, dueDate, priority })
+    props.onSave({ title: title.trim(), detail: detail.trim() || undefined, dueDate, priority, difficulty, today, inProgress })
     props.onClose()
   }
 
   const priorities = category === 'want' ? WANT_PRIORITIES : TASK_PRIORITIES
   const showPriority = category !== 'memo'
   const showDateTime = category !== 'memo'
+  const showExtras = category !== 'memo' // 難易度・今日・進行中
 
   return (
     <>
@@ -84,7 +104,7 @@ export default function TaskModal(props: Props) {
         className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
         onClick={e => { if (e.target === e.currentTarget) props.onClose() }}
       >
-        <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-xl">
+        <div className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 shadow-xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-gray-800">
               {isEdit ? '編集' : category === 'task' ? 'タスクを追加' : category === 'want' ? 'やりたいことを追加' : 'メモを追加'}
@@ -132,6 +152,47 @@ export default function TaskModal(props: Props) {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {showExtras && (
+              <div>
+                <p className="text-xs text-gray-400 mb-1.5">難易度（もう一度押すと解除）</p>
+                <div className="flex gap-2">
+                  {DIFFICULTIES.map(d => (
+                    <button
+                      key={d.value}
+                      onClick={() => setDifficulty(cur => (cur === d.value ? undefined : d.value))}
+                      className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-colors leading-tight ${
+                        difficulty === d.value ? d.active : d.color + ' hover:opacity-70'
+                      }`}
+                    >
+                      <span className="block">{d.label}</span>
+                      <span className="block text-[10px] opacity-70">{d.hint}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {showExtras && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setToday(v => !v)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                    today ? 'bg-amber-400 text-white border-amber-400' : 'border-amber-200 text-amber-600 hover:opacity-70'
+                  }`}
+                >
+                  ☀️ 今日やる
+                </button>
+                <button
+                  onClick={() => setInProgress(v => !v)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                    inProgress ? 'bg-emerald-500 text-white border-emerald-500' : 'border-emerald-200 text-emerald-600 hover:opacity-70'
+                  }`}
+                >
+                  進行中にする
+                </button>
               </div>
             )}
 
