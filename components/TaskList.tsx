@@ -74,7 +74,7 @@ export default function TaskList({
     : view === 'task'
     ? 'タスクがありません'
     : view === 'want'
-    ? 'やりたいことがありません'
+    ? 'やるんだよ'
     : 'メモがありません'
 
   return (

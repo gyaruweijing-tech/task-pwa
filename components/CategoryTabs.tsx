@@ -10,7 +10,7 @@ interface Props {
 const TABS: { value: View; label: string }[] = [
   { value: 'today', label: '今日' },
   { value: 'task', label: 'タスク' },
-  { value: 'want', label: 'やりたい' },
+  { value: 'want', label: 'やると決めた' },
   { value: 'memo', label: 'メモ' },
 ]
 
