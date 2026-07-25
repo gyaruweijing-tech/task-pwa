@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Task, Difficulty } from '@/types/task'
+import { Task } from '@/types/task'
 
 interface Props {
   task: Task
   onToggle: (id: string) => void
   onTap: (task: Task) => void
   onDateTap: (task: Task) => void
-  onToggleToday: (id: string) => void
 }
 
 const PRIORITY_STYLE = {
@@ -23,13 +22,6 @@ const WANT_PRIORITY_STYLE = {
   high:   { dot: 'bg-purple-500', badge: 'text-purple-500' },
   medium: { dot: 'bg-blue-400',   badge: 'text-blue-500' },
   low:    { dot: 'bg-gray-300',   badge: 'text-gray-400' },
-}
-
-// 難易度チップ：哲学（難=朝/中=昼/易=夜）を絵文字で表現
-const DIFFICULTY_STYLE: Record<Difficulty, { label: string; chip: string }> = {
-  hard:   { label: '🌅 難しい', chip: 'bg-orange-50 text-orange-600 border-orange-200' },
-  medium: { label: '☀️ ふつう', chip: 'bg-amber-50 text-amber-600 border-amber-200' },
-  easy:   { label: '🌙 簡単',   chip: 'bg-indigo-50 text-indigo-500 border-indigo-200' },
 }
 
 function dueDateLabel(dueDate: string): { text: string; color: string } {
@@ -62,7 +54,7 @@ function dueDateLabel(dueDate: string): { text: string; color: string } {
   }
 }
 
-export default function TaskItem({ task, onToggle, onTap, onDateTap, onToggleToday }: Props) {
+export default function TaskItem({ task, onToggle, onTap, onDateTap }: Props) {
   const [expanded, setExpanded] = useState(false)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id })
 
@@ -75,7 +67,6 @@ export default function TaskItem({ task, onToggle, onTap, onDateTap, onToggleTod
 
   const styleMap = task.category === 'want' ? WANT_PRIORITY_STYLE : PRIORITY_STYLE
   const priority = styleMap[task.priority ?? 'medium']
-  const diff = task.difficulty ? DIFFICULTY_STYLE[task.difficulty] : null
 
   return (
     <div
@@ -85,7 +76,7 @@ export default function TaskItem({ task, onToggle, onTap, onDateTap, onToggleTod
         task.completed ? 'opacity-40' : 'opacity-100'
       } ${isDragging ? 'shadow-lg rounded-xl' : ''}`}
     >
-      {/* ドラッグハンドル（memoカテゴリでも表示） */}
+      {/* ドラッグハンドル */}
       <button
         {...attributes}
         {...listeners}
@@ -97,9 +88,7 @@ export default function TaskItem({ task, onToggle, onTap, onDateTap, onToggleTod
         </svg>
       </button>
 
-      {task.category !== 'memo' && (
-        <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${priority.dot}`} />
-      )}
+      <span className={`w-2 h-2 rounded-full flex-shrink-0 mt-2 ${priority.dot}`} />
 
       {/* チェックボタン */}
       <button
@@ -126,23 +115,6 @@ export default function TaskItem({ task, onToggle, onTap, onDateTap, onToggleTod
           </p>
         </button>
 
-        {/* バッジ類：進行中 / 難易度 */}
-        {(task.inProgress || diff) && (
-          <div className="flex flex-wrap items-center gap-1 mt-1">
-            {task.inProgress && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-600">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                進行中
-              </span>
-            )}
-            {diff && (
-              <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full border ${diff.chip}`}>
-                {diff.label}
-              </span>
-            )}
-          </div>
-        )}
-
         {task.detail && (
           <div>
             <button
@@ -165,25 +137,6 @@ export default function TaskItem({ task, onToggle, onTap, onDateTap, onToggleTod
           </button>
         )}
       </div>
-
-      {/* 今日に追加 / 外す クイックトグル（memoは対象外） */}
-      {task.category !== 'memo' && !task.completed && (
-        <button
-          onClick={() => onToggleToday(task.id)}
-          className={`flex-shrink-0 p-1.5 rounded-full transition-colors mt-0.5 ${
-            task.today
-              ? 'text-amber-500 bg-amber-50'
-              : 'text-gray-300 hover:text-amber-400 hover:bg-amber-50'
-          }`}
-          aria-label={task.today ? '今日から外す' : '今日に追加'}
-          title={task.today ? '今日から外す' : '今日やる'}
-        >
-          <svg className="w-5 h-5" fill={task.today ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="4" />
-            <path strokeLinecap="round" d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-          </svg>
-        </button>
-      )}
     </div>
   )
 }

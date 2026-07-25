@@ -1,17 +1,15 @@
 'use client'
 
-import { View } from '@/types/task'
+import { Category } from '@/types/task'
 
 interface Props {
-  active: View
-  onChange: (view: View) => void
+  active: Category
+  onChange: (category: Category) => void
 }
 
-const TABS: { value: View; label: string }[] = [
-  { value: 'today', label: '今日' },
+const TABS: { value: Category; label: string }[] = [
   { value: 'task', label: 'タスク' },
   { value: 'want', label: 'やると決めた' },
-  { value: 'memo', label: 'メモ' },
 ]
 
 export default function CategoryTabs({ active, onChange }: Props) {
@@ -23,9 +21,7 @@ export default function CategoryTabs({ active, onChange }: Props) {
           onClick={() => onChange(tab.value)}
           className={`flex-1 py-3 text-sm font-medium transition-colors ${
             active === tab.value
-              ? tab.value === 'today'
-                ? 'text-amber-600 border-b-2 border-amber-500'
-                : 'text-blue-600 border-b-2 border-blue-600'
+              ? 'text-blue-600 border-b-2 border-blue-600'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >

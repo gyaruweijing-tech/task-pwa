@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Category, Task, View } from '@/types/task'
+import { Category, Task } from '@/types/task'
 import { useTasks } from '@/hooks/useTasks'
 import CategoryTabs from '@/components/CategoryTabs'
 import TaskList from '@/components/TaskList'
@@ -14,17 +14,14 @@ type ModalState =
   | null
 
 export default function Home() {
-  const [view, setView] = useState<View>('today')
+  const [view, setView] = useState<Category>('task')
   const [modal, setModal] = useState<ModalState>(null)
   const [datePickerTask, setDatePickerTask] = useState<Task | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifStatus, setNotifStatus] = useState<NotificationPermission | null>(null)
   const importRef = useRef<HTMLInputElement>(null)
 
-  const { tasks, addTask, updateTask, toggleComplete, toggleToday, deleteTask, clearCompleted, clearToday, reorderTasks, reorderToday, exportTasks, importTasks } = useTasks()
-
-  // 「今日」ビューでの追加は task カテゴリ扱い
-  const addCategory: Category = view === 'today' ? 'task' : view
+  const { tasks, addTask, updateTask, toggleComplete, deleteTask, clearCompleted, reorderTasks, exportTasks, importTasks } = useTasks()
 
   // 通知許可状態を確認
   useEffect(() => {
@@ -154,10 +151,7 @@ export default function Home() {
         onTap={task => setModal({ type: 'edit', task })}
         onDateTap={task => setDatePickerTask(task)}
         onClearCompleted={clearCompleted}
-        onClearToday={clearToday}
         onReorder={reorderTasks}
-        onReorderToday={reorderToday}
-        onToggleToday={toggleToday}
       />
 
       {/* FAB */}
@@ -174,10 +168,9 @@ export default function Home() {
       {modal?.type === 'add' && (
         <TaskModal
           mode="add"
-          category={addCategory}
-          initialToday={view === 'today'}
+          category={view}
           onClose={() => setModal(null)}
-          onSave={data => addTask({ ...data, category: addCategory })}
+          onSave={data => addTask({ ...data, category: view })}
         />
       )}
 
